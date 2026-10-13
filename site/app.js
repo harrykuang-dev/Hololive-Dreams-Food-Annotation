@@ -32,7 +32,7 @@ async function choose(label){
 }
 for(const [label,text]of Object.entries(names)){if(['background','uncertain'].includes(label))continue;const button=document.createElement('button');button.className='food';button.type='button';const icon=document.createElement('img');icon.src='icons/'+label+'.png';icon.alt='';const caption=document.createElement('span');caption.textContent=text;button.append(icon,caption);button.addEventListener('click',()=>choose(label));$('foods').append(button)}
 $('background').onclick=()=>choose('background');$('uncertain').onclick=()=>choose('uncertain');$('next').onclick=claim;
-$('join-form').onsubmit=async e=>{e.preventDefault();try{const d=await api('/api/join',{name:$('name').value,invite:$('invite').value});token=d.token;name=d.name;write('token',token);write('name',name);$('invite').value='';$('join').hidden=true;await sendPending();await claim()}catch(error){status(error.message)}};
+$('join-form').onsubmit=async e=>{e.preventDefault();try{const d=await api('/api/join',{name:$('name').value});token=d.token;name=d.name;write('token',token);write('name',name);$('join').hidden=true;await sendPending();await claim()}catch(error){status(error.message)}};
 $('keep-pending').onclick=async()=>{const pending=read('pending');if(!pending)return;const url=URL.createObjectURL(new Blob([JSON.stringify({dataset_id:config.dataset_id,pending},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='unsynced-annotation.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);write('pending',null);$('pending-conflict').hidden=true;lock(false);await claim()};
 $('retry').onclick=async()=>{try{await sendPending();await claim()}catch(e){status(e.message)}};
 $('undo').onclick=async()=>{if(busy||!lastSaved)return;lock(true);try{const d=await api('/api/undo',{id:lastSaved.id});lastSaved=null;progress(d.stats);show(d.sample);status('已撤銷，請重新選擇。')}catch(e){status(e.message)}finally{lock(false)}};
@@ -40,7 +40,7 @@ $('export').onclick=async()=>{try{const d=await api('/api/export');const url=URL
 window.addEventListener('keydown',e=>{if(e.code==='Space'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)){e.preventDefault();choose('uncertain')}});
 if(config.api_base){
  const base=new URL(config.api_base);if(base.protocol!=='https:'&&!['127.0.0.1','localhost'].includes(base.hostname))throw new Error('共享連線必須使用HTTPS');
- if(token){try{await sendPending();await claim()}catch(e){status(e.message)}}else{$('join').hidden=false;status('請填寫暱稱與邀請碼。')}
+ if(token){try{await sendPending();await claim()}catch(e){status(e.message)}}else{$('join').hidden=false;$('name').value=name||'';$('connection').textContent='尚未加入';status('請填寫標註者 ID。')}
  setInterval(async()=>{if(!token||busy)return;try{progress(await api('/api/stats'))}catch{$('connection').textContent='連線中斷'}},5000);
  setInterval(()=>{if(sample&&!busy)claim()},300000);
 }else{$('connection').textContent='尚未接通';status('共享服務尚未接通，請等待部署完成。')}

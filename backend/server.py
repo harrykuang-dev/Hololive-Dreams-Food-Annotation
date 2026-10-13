@@ -1,5 +1,5 @@
 """Small shared annotation API. Independent SQLite database; no training or game input."""
-import contextlib,hashlib,hmac,json,os,secrets,sqlite3,time
+import contextlib,hashlib,json,os,secrets,sqlite3,time
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -8,7 +8,6 @@ ROOT=Path(__file__).resolve().parent
 DATABASE=Path(os.environ.get('ANNOTATION_DATABASE',ROOT/'runtime/progress.sqlite3'))
 SEED=Path(os.environ.get('ANNOTATION_SEED',ROOT/'seed.json'))
 ORIGIN=os.environ.get('ANNOTATION_ORIGIN','http://127.0.0.1:8080').rstrip('/')
-INVITE=os.environ.get('ANNOTATION_INVITE_KEY','')
 LABELS=['background','ham','milk','pot','potato','sauce','cucumber','meat','udon','noodles','plum','egg','brownegg','kamaboko','cereal','onion','panko','pepper','spider','flour','sausage','ricebowl','plate','ricepack','scallion','shrimp','curry','seaweed','glove','moyashi','tuna','uncertain']
 
 @contextlib.contextmanager
@@ -81,7 +80,7 @@ class Handler(BaseHTTPRequestHandler):
             if not self.identity(db):return self.reply(401,{'error':'請先加入標註'})
             if path=='/api/stats':return self.reply(200,stats(db))
             if path=='/api/export':
-                rows=db.execute('SELECT id,label,author,updated FROM annotations').fetchall()
+                rows=db.execute('SELECT a.id,a.label,COALESCE(p.name,a.author) AS author,a.updated FROM annotations a LEFT JOIN participants p ON p.token_hash=a.author').fetchall()
                 return self.reply(200,{'dataset_sha256':db.execute('SELECT value FROM metadata WHERE key=?',('dataset_sha256',)).fetchone()[0],
                     'annotations':{r['id']:{'visible':r['label'],'human_annotated':True,'origin':'shared/'+r['author'],'updated':r['updated']} for r in rows}})
         self.reply(404,{'error':'找不到介面'})
@@ -91,9 +90,8 @@ class Handler(BaseHTTPRequestHandler):
             p=self.payload();path=urlsplit(self.path).path;now=int(time.time())
             with connect() as db:
                 if path=='/api/join':
-                    name=p.get('name','');invite=p.get('invite','')
-                    if not isinstance(name,str) or not 1<=len(name.strip())<=40:raise ValueError('請填寫40字內的標註者名稱')
-                    if not isinstance(invite,str) or not hmac.compare_digest(invite,INVITE):return self.reply(403,{'error':'邀請碼不正確'})
+                    name=p.get('name','')
+                    if not isinstance(name,str) or not 1<=len(name.strip())<=40:raise ValueError('請填寫40字內的標註者 ID')
                     token=secrets.token_urlsafe(32);key=hashlib.sha256(token.encode()).hexdigest()
                     db.execute('INSERT INTO participants VALUES(?,?,?)',(key,name.strip(),now+30*86400))
                     return self.reply(200,{'token':token,'name':name.strip(),'stats':stats(db)})
@@ -144,7 +142,6 @@ class Handler(BaseHTTPRequestHandler):
         except sqlite3.Error:self.reply(503,{'error':'資料庫暫時忙碌，選擇尚未保存，請重試'})
 
 if __name__=='__main__':
-    if len(INVITE)<16:raise SystemExit('請先在伺服器環境設定至少16字元的 ANNOTATION_INVITE_KEY；不要寫入Git。')
     initialize();server=ThreadingHTTPServer((os.environ.get('ANNOTATION_HOST','127.0.0.1'),int(os.environ.get('ANNOTATION_PORT','18765'))),Handler)
     server.daemon_threads=True
     try:server.serve_forever()
