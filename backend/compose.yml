@@ -17,11 +17,13 @@ services:
       ANNOTATION_PORT: '18765'
       ANNOTATION_DATABASE: /data/progress.sqlite3
       ANNOTATION_SEED: /app/seed.json
+      ANNOTATION_STATIC_ROOT: /site
     volumes:
       - /srv/cooking-annotation/server.py:/app/server.py:ro
       - /srv/cooking-annotation/seed.json:/app/seed.json:ro
       - /srv/cooking-annotation/backup.py:/app/backup.py:ro
       - /srv/cooking-annotation/runtime/data:/data
+      - /srv/cooking-annotation/site:/site:ro
     networks: [annotation]
     logging:
       driver: json-file

@@ -1,4 +1,4 @@
 ANNOTATION_DATABASE=/var/lib/cooking-annotation/progress.sqlite3
 ANNOTATION_SEED=/opt/cooking-annotation/seed.json
 ANNOTATION_PORT=18765
-ANNOTATION_ORIGIN=https://harrykuang-dev.github.io
+ANNOTATION_ORIGIN=https://label.kurumimarket.store

@@ -2,7 +2,7 @@
 
 獨立的多人食材標註程式。提供點位裁片、周邊畫面與平面的食物圖示選項；每次選擇立即保存至共享 SQLite 資料庫。
 
-標註入口：[label.kurumimarket.store](https://label.kurumimarket.store)，轉向 [GitHub Pages 前端](https://harrykuang-dev.github.io/Hololive-Dreams-Food-Annotation/)。API 使用相同子網域的 `/api/` 路徑。
+標註入口：[label.kurumimarket.store](https://label.kurumimarket.store)。網頁、圖片及 API 均部署至獨立標註服務；GitHub 倉庫保存程式碼和資料集圖片。API 使用相同子網域的 `/api/` 路徑。
 
 ## 標註
 
@@ -18,17 +18,16 @@
 
 ## 部署
 
-靜態圖片和網頁由 GitHub Pages 提供，伺服器只處理標註 API，不執行模型或訓練。`site/config.json` 設定 HTTPS API 位址，後端 `ANNOTATION_ORIGIN` 設定前端來源網域。
+伺服器提供靜態圖片、網頁與標註 API，不執行模型或訓練。`site/config.json` 設定 HTTPS API 位址，後端 `ANNOTATION_ORIGIN` 設定相同前端來源網域。
 
 `backend/compose.yml` 部署獨立容器、網路及資料目錄。容器不發布主機埠，使用非 root 身分、唯讀程式檔、256 MB 記憶體與單核 25% CPU 上限。資料庫保存於 `/srv/cooking-annotation/runtime/data`，不共用原網站資料庫。
 
-1. 放置 `server.py`、`backup.py`、`compose.yml` 和私有 `seed.json` 至 `/srv/cooking-annotation`。種子只含樣本 ID、圖片路徑與既有人工標註；禁止提交 Git。
+1. 放置 `server.py`、`backup.py`、`compose.yml` 和私有 `seed.json` 至 `/srv/cooking-annotation`，將 `site/` 放至同目錄。種子只含樣本 ID、圖片路徑與既有人工標註；禁止提交 Git。
 2. 建立 `runtime/data`，將擁有者設為 UID/GID 10001。建立 `runtime/api.env`，依 `environment.example` 設定前端來源，檔案權限設為 600。
 3. 啟動 `docker compose -p cooking-annotation -f /srv/cooking-annotation/compose.yml up -d`。
-4. 將 Caddy 閘道連接到 `cooking-annotation` 網路，新增獨立子網域的 `/api/*` 轉送至 `cooking-annotation:18765`。先備份並驗證代理設定，再使用 `caddy reload` 平滑載入。
+4. 將 Caddy 閘道連接到 `cooking-annotation` 網路，新增獨立子網域轉送至 `cooking-annotation:18765`。先備份並驗證代理設定，再使用 `caddy reload` 平滑載入。
 5. 既有網站重新部署若重建閘道容器，需要恢復新網路連接。可使用 `ensure-gateway-network.py` 的獨立定期作業；不要修改原網站程式碼或停止原服務。
 6. 每日執行 `docker exec cooking-annotation python -B /app/backup.py`。透過 SQLite backup 介面產生一致備份，保留 14 天。
-7. 開啟 GitHub Pages 的 Actions 部署方式，以 `publish-annotation.yml` 發布前端。
 
 移除標註服務不需要停止原網站。代理設定的更新應保留其他網站的路由，更新後確認它們仍可存取。
 

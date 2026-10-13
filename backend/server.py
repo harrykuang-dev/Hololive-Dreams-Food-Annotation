@@ -1,13 +1,14 @@
 """Small shared annotation API. Independent SQLite database; no training or game input."""
-import contextlib,hashlib,json,os,secrets,sqlite3,time
+import contextlib,hashlib,json,mimetypes,os,secrets,shutil,sqlite3,time
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote,urlsplit
 
 ROOT=Path(__file__).resolve().parent
 DATABASE=Path(os.environ.get('ANNOTATION_DATABASE',ROOT/'runtime/progress.sqlite3'))
 SEED=Path(os.environ.get('ANNOTATION_SEED',ROOT/'seed.json'))
 ORIGIN=os.environ.get('ANNOTATION_ORIGIN','http://127.0.0.1:8080').rstrip('/')
+STATIC=Path(os.environ['ANNOTATION_STATIC_ROOT']).resolve() if os.environ.get('ANNOTATION_STATIC_ROOT') else None
 LABELS=['background','ham','milk','pot','potato','sauce','cucumber','meat','udon','noodles','plum','egg','brownegg','kamaboko','cereal','onion','panko','pepper','spider','flour','sausage','ricebowl','plate','ricepack','scallion','shrimp','curry','seaweed','glove','moyashi','tuna','uncertain']
 
 @contextlib.contextmanager
@@ -75,6 +76,16 @@ class Handler(BaseHTTPRequestHandler):
         return value
     def do_GET(self):
         path=urlsplit(self.path).path
+        if not path.startswith('/api/') and STATIC:
+            target=(STATIC/unquote(path).lstrip('/')).resolve()
+            if target==STATIC:target=STATIC/'index.html'
+            if not target.is_relative_to(STATIC) or not target.is_file():return self.reply(404,{'error':'找不到圖片或網頁'})
+            self.send_response(200);self.send_header('Content-Type',mimetypes.guess_type(target.name)[0] or 'application/octet-stream')
+            self.send_header('Content-Length',str(target.stat().st_size));self.send_header('X-Content-Type-Options','nosniff')
+            self.send_header('Cache-Control','public, max-age=86400' if target.suffix in ('.png','.jpg') else 'no-store')
+            self.end_headers()
+            with target.open('rb') as source:shutil.copyfileobj(source,self.wfile)
+            return
         if path=='/api/health':return self.reply(200,{'status':'ok','service':'cooking-annotation'})
         with connect() as db:
             if not self.identity(db):return self.reply(401,{'error':'請先加入標註'})
