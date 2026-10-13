@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>食材點位標註</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><div class="brand">🍳</div><div><h1>食材點位標註</h1><p>選擇紅圈中心正下方、最上層可見的食物。</p></div><span id="connection" role="status">連線中</span></header>
+<section id="join" class="card" hidden><h2>加入共同標註</h2><p>填寫暱稱與邀請碼。每次選擇立即同步，關閉後可接續。</p>
+<form id="join-form"><label>標註者暱稱<input id="name" maxlength="40" required autocomplete="nickname"></label>
+<label>邀請碼<input id="invite" type="password" required autocomplete="off"></label><button type="submit" class="primary">開始標註</button></form></section>
+<section class="card progress"><div><h2 id="completed">已確認：—</h2><p id="remaining">正在取得共享進度</p></div><div class="actions"><button id="retry">重新連線</button><button id="export">下載標註結果</button></div></section>
+<div id="workspace" class="workspace" hidden>
+<section class="card images"><div class="image-pair"><figure><figcaption>點位裁片</figcaption><div class="picture crop"><img id="crop" alt="待確認的點位裁片"><span class="crosshair"></span></div></figure><figure><figcaption>周邊畫面</figcaption><div class="picture context"><img id="context" alt="點位周邊畫面"><span class="crosshair"></span></div></figure></div>
+<p>只判斷紅圈中心。被遮住、看不清請選「不確定」，不用判斷槽位或點擊結果。</p><p id="sample-id" class="muted"></p><div class="actions"><button id="undo" disabled>撤銷上一張</button><button id="next">接續未標圖片</button></div></section>
+<section class="card choices"><h2>紅圈中心是什麼？</h2><div id="foods" class="food-grid"></div><div class="special"><button id="background">背景／空白</button><button id="uncertain">不確定 [空格]</button></div></section></div>
+<p id="status" class="status" role="status" aria-live="polite">正在連線…</p>
+<div id="pending-conflict" class="actions" hidden><button id="keep-pending">下載未同步選擇並接續</button></div>
+<footer><span id="participant"></span><span>圖片領取會暫時保留，避免多人重複標同一張。</span><a href="https://github.com/harrykuang-dev/Hololive-Dreams-Food-Annotation">GitHub</a></footer>
+</main><script type="module" src="app.js"></script></body></html>
