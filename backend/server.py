@@ -14,7 +14,7 @@ LABELS=['background','ham','milk','pot','potato','sauce','cucumber','meat','udon
 @contextlib.contextmanager
 def connect():
     db=sqlite3.connect(DATABASE,timeout=5,isolation_level=None);db.row_factory=sqlite3.Row
-    db.execute('PRAGMA busy_timeout=5000')
+    db.execute('PRAGMA busy_timeout=5000');db.execute('PRAGMA foreign_keys=ON');db.execute('PRAGMA synchronous=FULL')
     try:yield db
     finally:db.close()
 
@@ -145,7 +145,7 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__=='__main__':
     if len(INVITE)<16:raise SystemExit('請先在伺服器環境設定至少16字元的 ANNOTATION_INVITE_KEY；不要寫入Git。')
-    initialize();server=ThreadingHTTPServer(('127.0.0.1',int(os.environ.get('ANNOTATION_PORT','18765'))),Handler)
+    initialize();server=ThreadingHTTPServer((os.environ.get('ANNOTATION_HOST','127.0.0.1'),int(os.environ.get('ANNOTATION_PORT','18765'))),Handler)
     server.daemon_threads=True
     try:server.serve_forever()
     finally:server.server_close()

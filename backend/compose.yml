@@ -1,0 +1,33 @@
+services:
+  api:
+    image: python:3.12-alpine
+    container_name: cooking-annotation
+    restart: unless-stopped
+    user: '10001:10001'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.25
+    mem_limit: 256m
+    pids_limit: 64
+    command: [python, -B, /app/server.py]
+    env_file: /srv/cooking-annotation/runtime/api.env
+    environment:
+      ANNOTATION_HOST: 0.0.0.0
+      ANNOTATION_PORT: '18765'
+      ANNOTATION_DATABASE: /data/progress.sqlite3
+      ANNOTATION_SEED: /app/seed.json
+    volumes:
+      - /srv/cooking-annotation/server.py:/app/server.py:ro
+      - /srv/cooking-annotation/seed.json:/app/seed.json:ro
+      - /srv/cooking-annotation/backup.py:/app/backup.py:ro
+      - /srv/cooking-annotation/runtime/data:/data
+    networks: [annotation]
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+networks:
+  annotation:
+    name: cooking-annotation

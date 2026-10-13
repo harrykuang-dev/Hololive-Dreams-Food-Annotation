@@ -1,29 +1,37 @@
 # 食材點位共同標註
 
-獨立倉庫：<https://github.com/harrykuang-dev/Hololive-Dreams-Food-Annotation>。不包含料理程式引擎或 Kurumimarket 網站程式碼。
+獨立的多人食材標註程式。提供點位裁片、周邊畫面與平面的食物圖示選項；每次選擇立即保存至共享 SQLite 資料庫。
 
-網頁提供圖片與平面的食物圖示選項。每次選擇立即提交至獨立SQLite資料庫；多人共用進度，圖片領取保留15分鐘，避免重複分配。瀏覽器暫存尚未確認同步的選擇，重新連線後重試。不確定圖片保留記錄，不作食物分類訓練標籤。
+標註入口：[label.kurumimarket.store](https://label.kurumimarket.store)，轉向 [GitHub Pages 前端](https://harrykuang-dev.github.io/Hololive-Dreams-Food-Annotation/)。API 使用相同子網域的 `/api/` 路徑。
 
-前端部署於GitHub Pages，後端使用Python標準函式庫，可部署至既有Linux伺服器。圖片放在靜態網站，伺服器不執行模型、錄影編碼或訓練。伺服器入口使用獨立子網域及HTTPS，程式只監聽回環端口18765。systemd服務限制256 MB記憶體與單核25% CPU，使用獨立系統使用者及資料目錄。
+## 標註
+
+使用暱稱和邀請碼加入。只判斷紅圈中心正下方、最上層可見的食物；看不清時選「不確定」。不使用點擊結果、槽位狀態或模型預測作為人工標籤。
+
+- 每次選擇立即同步，其他參與者的共享計數每 5 秒更新。
+- 圖片領取保留 15 分鐘，避免多人重複分配；開啟中的圖片會定期續期。
+- 網路中斷時，未確認提交的選擇留在瀏覽器，重新連線後重試。如果領取已失效或已由其他人保存，可下載未同步選擇後接續，不覆蓋別人的標註。
+- 既有人工標註受保護。新增標註可由本人於 5 分鐘內撤銷；歷史事件保留。
+- 工作階段有效期 30 天；關閉瀏覽器可接續。邀請碼由管理者私下提供，不存於此倉庫。
+
+資料集含 15,631 張樣本。裁片為原始 64×64 PNG，周邊圖片僅用於人工判斷。訓練仍使用相同裁片與 96×96 輸入。此倉庫不包含料理程式引擎、Kurumimarket 網站程式碼、原始錄影、模型權重或 SSH 金鑰。
 
 ## 部署
 
-目前配置尚未連接正式API，網頁會明確顯示「共享服務尚未接通」。設定完成後才提供多人即時同步；GitHub Pages本身不儲存共享標註。
+靜態圖片和網頁由 GitHub Pages 提供，伺服器只處理標註 API，不執行模型或訓練。`site/config.json` 設定 HTTPS API 位址，後端 `ANNOTATION_ORIGIN` 設定前端來源網域。
 
-1. 在伺服器配置`cooking-annotation`系統使用者、`/opt/cooking-annotation`程式目錄與`/var/lib/cooking-annotation`資料目錄。
-2. 放置`backend/server.py`及與前端同一資料集的`seed.json`。種子包含樣本ID、裁片路徑及既有人工標註，不包含模型預測或私密憑據。
-3. 依`backend/environment.example`建立`/etc/cooking-annotation.env`，限制只有部署管理者可讀。私下設定高熵邀請碼，不把真實值提交Git。
-4. 安裝`backend/annotation.service`，啟動新服務。不要停止原網站服務、重用其資料庫或覆蓋其代理設定。
-5. 以現有反向代理新增獨立HTTPS入口，轉送至`127.0.0.1:18765`。先驗證設定，再平滑載入。實際端口、代理軟體、網域與DNS需依伺服器現況確認。
-6. 將`site/config.json`的`api_base`填為正式HTTPS API網址，與後端的`ANNOTATION_ORIGIN`對應GitHub Pages來源網域。
-7. 開啟GitHub Pages的Actions部署方式，以`publish-annotation.yml`發布前端。
+`backend/compose.yml` 部署獨立容器、網路及資料目錄。容器不發布主機埠，使用非 root 身分、唯讀程式檔、256 MB 記憶體與單核 25% CPU 上限。資料庫保存於 `/srv/cooking-annotation/runtime/data`，不共用原網站資料庫。
 
-既有人工標註在資料庫初始化時標記為受保護，不被網頁覆蓋。新增標註只有目前領取者能提交；重試相同選擇不重複寫入。撤銷僅適用本人五分鐘內的新增標註，歷史事件仍保留。
+1. 放置 `server.py`、`backup.py`、`compose.yml` 和私有 `seed.json` 至 `/srv/cooking-annotation`。種子只含樣本 ID、圖片路徑與既有人工標註；禁止提交 Git。
+2. 建立 `runtime/data`，將擁有者設為 UID/GID 10001。建立私有 `runtime/api.env`，依 `environment.example` 設定來源及至少 16 字元的隨機邀請碼，檔案權限設為 600。
+3. 啟動 `docker compose -p cooking-annotation -f /srv/cooking-annotation/compose.yml up -d`。
+4. 將 Caddy 閘道連接到 `cooking-annotation` 網路，新增獨立子網域的 `/api/*` 轉送至 `cooking-annotation:18765`。先備份並驗證代理設定，再使用 `caddy reload` 平滑載入。
+5. 既有網站重新部署若重建閘道容器，需要恢復新網路連接。可使用 `ensure-gateway-network.py` 的獨立定期作業；不要修改原網站程式碼或停止原服務。
+6. 每日執行 `docker exec cooking-annotation python -B /app/backup.py`。透過 SQLite backup 介面產生一致備份，保留 14 天。
+7. 開啟 GitHub Pages 的 Actions 部署方式，以 `publish-annotation.yml` 發布前端。
 
-## 標註與匯出
+移除標註服務不需要停止原網站。代理設定的更新應保留其他網站的路由，更新後確認它們仍可存取。
 
-以暱稱和邀請碼加入，不使用伺服器SSH私鑰或GitHub存取權杖。填邀請碼後取得30日標註工作階段；關閉瀏覽器保留本機接續資料。每次選擇即同步到伺服器，其他參與者的共享計數每5秒更新。
+## 匯出與訓練
 
-下載`shared-annotations.json`後，先核對資料集指紋，再匯入本地人工標註庫。Web標註只確認紅圈中心外觀，不把實際點擊結果當成食物外觀；模型訓練仍共用原64×64裁片及相同的96×96輸入。
-
-備份SQLite須使用backup介面，不能在寫入期間只複製主檔而漏掉WAL。停用或移除新標註服務不需要停止原網站。部署前應實際核對原服務與端口，不能只依範例設定假定伺服器狀態。
+下載 `shared-annotations.json` 後，先核對 `dataset_sha256` 與本地資料集一致，再匯入人工標註庫。不確定標註不作食物分類訓練標籤。原始素材及既有人工標註須保留；標註結果不會自動替換遊戲程式的模型。
