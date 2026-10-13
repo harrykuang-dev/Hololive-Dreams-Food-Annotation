@@ -14,11 +14,21 @@ async function api(path,payload){
 }
 function show(s){
  sample=s;$('workspace').hidden=!s;
+ if($('fullshot-view')){$('fullshot-view').hidden=true;$('fullshot-image').removeAttribute('src');$('fullshot').disabled=!s?.screenshot;}
  if(!s){status('目前沒有可領取的圖片。可能已標完，或正在由其他人標註。');return}
  for(const k of ['crop','context']){if(!/^(crops|contexts)\/[a-f0-9]{24}\.(png|jpg)$/.test(s[k]))throw new Error('圖片路徑無效');$(k).src=s[k]}
  $('sample-id').textContent='圖片：'+s.id;$('participant').textContent='標註者：'+name;
  lock(false);status('選擇紅圈中心的食物。每次選擇立即同步。');
 }
+$('fullshot')?.addEventListener('click',()=>{
+ if(!sample?.screenshot||!/^screenshots\/[a-f0-9]{64}\.(jpg|png)$/.test(sample.screenshot))return;
+ const point=sample.screenshot_point_percent;if(!Array.isArray(point)||point.length!==2||point.some(v=>!Number.isFinite(v)||v<0||v>100)){status('完整截圖點位資料無效');return}
+ const id=sample.id;$('fullshot-status').textContent='正在載入完整原始截圖…';$('fullshot-view').hidden=false;
+ $('fullshot-point').style.left=point[0]+'%';$('fullshot-point').style.top=point[1]+'%';$('fullshot-link').href=sample.screenshot;
+ $('fullshot-image').onload=()=>{if(sample?.id===id)$('fullshot-status').textContent='原始尺寸：'+sample.screenshot_size.join(' × ')+'；圖片未重新壓縮。'};
+ $('fullshot-image').onerror=()=>{if(sample?.id===id){$('fullshot-status').textContent='這張完整截圖尚未上傳完成，稍後可再按一次載入。'}};
+ $('fullshot-image').src=sample.screenshot;
+});
 async function claim(){if(busy)return;lock(true);try{const d=await api('/api/claim',{});progress(d.stats);show(d.sample)}catch(e){status(e.message);$('connection').textContent='連線中斷'}finally{lock(false)}}
 async function sendPending(){
  const pending=read('pending');if(!pending)return true;

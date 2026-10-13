@@ -9,7 +9,8 @@
 <section class="card progress"><div><h2 id="completed">已確認：—</h2><p id="remaining">正在取得共享進度</p></div><div class="actions"><button id="retry">重新連線</button><button id="export">下載標註結果</button></div></section>
 <div id="workspace" class="workspace" hidden>
 <section class="card images"><div class="image-pair"><figure><figcaption>點位裁片</figcaption><div class="picture crop"><img id="crop" alt="待確認的點位裁片"><span class="crosshair"></span></div></figure><figure><figcaption>周邊畫面</figcaption><div class="picture context"><img id="context" alt="點位周邊畫面"><span class="crosshair"></span></div></figure></div>
-<p>只判斷紅圈中心。被遮住、看不清請選「不確定」，不用判斷槽位或點擊結果。</p><p id="sample-id" class="muted"></p><div class="actions"><button id="undo" disabled>撤銷上一張</button><button id="next">接續未標圖片</button></div></section>
+<p>只判斷紅圈中心。被遮住、看不清請選「不確定」，不用判斷槽位或點擊結果。</p><p id="sample-id" class="muted"></p><div class="actions"><button id="undo" disabled>撤銷上一張</button><button id="next">接續未標圖片</button><button id="fullshot" disabled>載入完整截圖</button></div>
+<figure id="fullshot-view" hidden><figcaption>當時的完整原始截圖，紅圈為本張標註點位。點圖片可另開原圖放大。</figcaption><div class="fullshot-picture"><a id="fullshot-link" target="_blank" rel="noopener"><img id="fullshot-image" alt="當時的完整原始截圖"></a><span id="fullshot-point" class="crosshair"></span></div><p id="fullshot-status" class="muted"></p></figure></section>
 <section class="card choices"><h2>紅圈中心是什麼？</h2><div id="foods" class="food-grid"></div><div class="special"><button id="background">背景／空白</button><button id="uncertain">不確定 [空格]</button></div></section></div>
 <p id="status" class="status" role="status" aria-live="polite">正在連線…</p>
 <div id="pending-conflict" class="actions" hidden><button id="keep-pending">下載未同步選擇並接續</button></div>

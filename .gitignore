@@ -2,3 +2,8 @@ backend/runtime/
 backend/seed.json
 *.env
 __pycache__/
+uploader/upload-plan.json
+uploader/site-update.json
+uploader/dist/
+uploader/build/
+*.spec
